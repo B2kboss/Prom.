@@ -52,6 +52,7 @@ export interface Listing {
   reviewCount: number;
   createdAt: string;
   updatedAt: string;
+  badges?: string[];
   packages: PromotionPackage[];
   activeHotDeal?: HotDeal;
 }

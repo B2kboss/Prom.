@@ -34,7 +34,7 @@ import {
   generateSnapshotsForListing 
 } from './mockData';
 
-const STORAGE_KEY = 'promio_marketplace_state_v1';
+const STORAGE_KEY = 'telega_promio_marketplace_v4';
 
 interface AppState {
   users: UserProfile[];
@@ -1050,6 +1050,57 @@ export const useAppStore = () => {
     return { total, counts, percentages, avg, reviews: visibleReviews };
   };
 
+  const getCompletedOrdersForListing = (listingId: string): Order[] => {
+    return globalState.orders.filter(
+      (o) => o.listingId === listingId && o.buyerId === currentUser.id && o.status === 'completed'
+    );
+  };
+
+  const getEligibleOrdersToRate = (listingId: string): Order[] => {
+    const reviewedOrderIds = new Set(globalState.reviews.map((r) => r.orderId));
+    return globalState.orders.filter(
+      (o) => o.listingId === listingId && o.buyerId === currentUser.id && o.status === 'completed' && !reviewedOrderIds.has(o.id)
+    );
+  };
+
+  const simulateCompleteOrder = (listingId: string) => {
+    const listing = globalState.listings.find((l) => l.id === listingId);
+    if (!listing) throw new Error('Listing not found');
+    const pkg = listing.packages[0] || { id: 'pkg-default', name: 'Standard Ad', priceUsd: 2.50, formatType: 'post_1_24' };
+
+    const newOrder: Order = {
+      id: `ord-sim-${Date.now()}`,
+      orderNumber: `PRM-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+      buyerId: currentUser.id,
+      buyerName: currentUser.fullName,
+      listingId: listing.id,
+      listingName: listing.name,
+      listingUsername: listing.username,
+      listingPlatform: listing.platform,
+      ownerId: listing.ownerId,
+      packageId: pkg.id,
+      packageName: pkg.name,
+      formatType: pkg.formatType,
+      originalPriceUsd: pkg.priceUsd,
+      priceUsd: pkg.priceUsd,
+      platformFeeUsd: +(pkg.priceUsd * 0.1).toFixed(2),
+      ownerPayoutUsd: +(pkg.priceUsd * 0.9).toFixed(2),
+      adText: `Verified promotion test on ${listing.name}. Target audience engagement confirmed.`,
+      targetUrl: 'https://telega.io/demo',
+      deliveryWindowHours: 24,
+      status: 'completed',
+      acceptedAt: new Date(Date.now() - 86400000).toISOString(),
+      publishedAt: new Date(Date.now() - 43200000).toISOString(),
+      completedAt: new Date().toISOString(),
+      createdAt: new Date(Date.now() - 172800000).toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    globalState.orders = [newOrder, ...globalState.orders];
+    notify();
+    return newOrder;
+  };
+
   const submitReview = (orderId: string, rating: number, reviewText?: string) => {
     const order = globalState.orders.find((o) => o.id === orderId);
     if (!order) throw new Error('Order not found');
@@ -1262,6 +1313,9 @@ export const useAppStore = () => {
     canRateOrder,
     getReviewForOrder,
     getListingReviewBreakdown,
+    getCompletedOrdersForListing,
+    getEligibleOrdersToRate,
+    simulateCompleteOrder,
     submitReview,
     reportReview,
     adminModerateReview,

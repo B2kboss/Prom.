@@ -1,24 +1,27 @@
 import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
-import { Footer } from './components/Footer';
+import { Sidebar } from './components/Sidebar';
+import { HomeView } from './components/HomeView';
 import { MarketplaceView } from './components/MarketplaceView';
+import { CreateCampaignView } from './components/CreateCampaignView';
+import { PublisherDashboardView } from './components/PublisherDashboardView';
 import { ListingDetailView } from './components/ListingDetailView';
 import { OrderCheckoutModal } from './components/OrderCheckoutModal';
 import { CryptoFinanceModal } from './components/CryptoFinanceModal';
-import { OwnerDashboard } from './components/OwnerDashboard';
 import { BuyerDashboard } from './components/BuyerDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { HowItWorksView } from './components/HowItWorksView';
 import { NotificationsDrawer } from './components/NotificationsDrawer';
 import { AuthModal } from './components/AuthModal';
+import { Footer } from './components/Footer';
 import { useAppStore } from './lib/store';
-import { PromotionPackage } from './types';
+import { Listing, PromotionPackage } from './types';
 
 export default function App() {
   const { state, currentUser } = useAppStore();
 
   const [currentView, setCurrentView] = useState<string>('marketplace');
-  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [selectedListingId, setSelectedListingId] = useState<string | null>('list-tg-pag-coin');
 
   // Modal triggers
   const [showOrderCheckout, setShowOrderCheckout] = useState(false);
@@ -47,109 +50,136 @@ export default function App() {
     setShowOrderCheckout(true);
   };
 
-  const activeListing = state.listings.find((l) => l.id === selectedListingId);
-  const activePackage = activeListing?.packages.find((p) => p.id === bookingPackageId);
+  const handleOpenCheckoutWithListing = (listing: Listing, packageId: string) => {
+    setSelectedListingId(listing.id);
+    setBookingPackageId(packageId);
+    setShowOrderCheckout(true);
+  };
+
+  const activeListing = state.listings.find((l) => l.id === selectedListingId) || state.listings[0];
+  const activePackage = activeListing?.packages.find((p) => p.id === bookingPackageId) || activeListing?.packages[0];
+
+  const isAppShellView = currentView !== 'home';
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
-      {/* Top Navigation */}
+      {/* Top Navigation Bar */}
       <Navbar
         currentView={currentView}
         onNavigate={handleNavigate}
         onOpenNotifications={() => setShowNotifications(true)}
         onOpenAuth={() => setShowAuthModal(true)}
+        onOpenWallet={() => {
+          setFinanceInitialTab('deposit');
+          setShowFinanceModal(true);
+        }}
       />
 
-      {/* Main View Router */}
-      <main className="flex-1">
-        {currentView === 'marketplace' && (
-          <MarketplaceView
-            initialPlatform="all"
-            filterHotDealsOnly={false}
-            onSelectListing={handleSelectListing}
-            onNavigate={handleNavigate}
-          />
-        )}
+      {/* Main Body Layout */}
+      <div className="flex-1 flex flex-col">
+        {currentView === 'home' ? (
+          <main className="flex-1">
+            <HomeView onNavigate={handleNavigate} />
+          </main>
+        ) : (
+          <div className="flex-1 flex w-full">
+            {/* Left Persistent Sidebar (hidden on mobile, visible on md+) */}
+            <div className="hidden md:block">
+              <Sidebar
+                currentView={currentView}
+                onNavigate={handleNavigate}
+                onOpenWallet={() => {
+                  setFinanceInitialTab('deposit');
+                  setShowFinanceModal(true);
+                }}
+              />
+            </div>
 
-        {currentView === 'telegram_channels' && (
-          <MarketplaceView
-            key="tg_channels"
-            initialPlatform="telegram_channel"
-            filterHotDealsOnly={false}
-            onSelectListing={handleSelectListing}
-            onNavigate={handleNavigate}
-          />
-        )}
+            {/* Main Content Pane */}
+            <main className="flex-1 min-w-0 bg-[#07090e]">
+              {currentView === 'marketplace' && (
+                <MarketplaceView
+                  initialPlatform="all"
+                  filterHotDealsOnly={false}
+                  onSelectListing={handleSelectListing}
+                  onNavigate={handleNavigate}
+                  onOpenCheckout={handleOpenCheckoutWithListing}
+                />
+              )}
 
-        {currentView === 'telegram_groups' && (
-          <MarketplaceView
-            key="tg_groups"
-            initialPlatform="telegram_group"
-            filterHotDealsOnly={false}
-            onSelectListing={handleSelectListing}
-            onNavigate={handleNavigate}
-          />
-        )}
+              {currentView === 'telegram_ads' && (
+                <MarketplaceView
+                  key="telegram_ads"
+                  initialPlatform="telegram_channel"
+                  filterHotDealsOnly={false}
+                  onSelectListing={handleSelectListing}
+                  onNavigate={handleNavigate}
+                  onOpenCheckout={handleOpenCheckoutWithListing}
+                />
+              )}
 
-        {currentView === 'x_accounts' && (
-          <MarketplaceView
-            key="x_accounts"
-            initialPlatform="x_account"
-            filterHotDealsOnly={false}
-            onSelectListing={handleSelectListing}
-            onNavigate={handleNavigate}
-          />
-        )}
+              {currentView === 'twitter_ads' && (
+                <MarketplaceView
+                  key="twitter_ads"
+                  initialPlatform="x_account"
+                  filterHotDealsOnly={false}
+                  onSelectListing={handleSelectListing}
+                  onNavigate={handleNavigate}
+                  onOpenCheckout={handleOpenCheckoutWithListing}
+                />
+              )}
 
-        {currentView === 'hot_deals' && (
-          <MarketplaceView
-            key="hot_deals"
-            initialPlatform="all"
-            filterHotDealsOnly={true}
-            onSelectListing={handleSelectListing}
-            onNavigate={handleNavigate}
-          />
-        )}
+              {currentView === 'create_campaign' && (
+                <CreateCampaignView
+                  onSelectListing={handleSelectListing}
+                  onNavigate={handleNavigate}
+                  onOpenCheckout={handleOpenCheckoutWithListing}
+                />
+              )}
 
-        {currentView === 'listing_detail' && selectedListingId && (
-          <ListingDetailView
-            listingId={selectedListingId}
-            onBack={() => handleNavigate('marketplace')}
-            onBookPackage={handleBookPackage}
-          />
-        )}
+              {currentView === 'publisher_dashboard' && (
+                <PublisherDashboardView
+                  onOpenWithdrawal={() => {
+                    setFinanceInitialTab('withdraw');
+                    setShowFinanceModal(true);
+                  }}
+                  onNavigateToListing={handleSelectListing}
+                  onNavigateToMarketplace={() => handleNavigate('marketplace')}
+                />
+              )}
 
-        {currentView === 'owner_dashboard' && (
-          <OwnerDashboard
-            onOpenWithdrawal={() => {
-              setFinanceInitialTab('withdraw');
-              setShowFinanceModal(true);
-            }}
-            onNavigateToListing={handleSelectListing}
-          />
-        )}
+              {currentView === 'listing_detail' && selectedListingId && (
+                <ListingDetailView
+                  listingId={selectedListingId}
+                  onBack={() => handleNavigate('marketplace')}
+                  onBookPackage={handleBookPackage}
+                />
+              )}
 
-        {currentView === 'buyer_dashboard' && (
-          <BuyerDashboard
-            onOpenDeposit={() => {
-              setFinanceInitialTab('deposit');
-              setShowFinanceModal(true);
-            }}
-            onNavigateToMarketplace={() => handleNavigate('marketplace')}
-          />
-        )}
+              {currentView === 'buyer_dashboard' && (
+                <BuyerDashboard
+                  onOpenDeposit={() => {
+                    setFinanceInitialTab('deposit');
+                    setShowFinanceModal(true);
+                  }}
+                  onNavigateToMarketplace={() => handleNavigate('marketplace')}
+                />
+              )}
 
-        {currentView === 'admin_dashboard' && (
-          <AdminDashboard />
-        )}
+              {currentView === 'admin_dashboard' && (
+                <AdminDashboard />
+              )}
 
-        {currentView === 'how_it_works' && (
-          <HowItWorksView
-            onNavigateToMarketplace={() => handleNavigate('marketplace')}
-            onNavigateToOwner={() => handleNavigate('owner_dashboard')}
-          />
+              {currentView === 'how_it_works' && (
+                <HowItWorksView
+                  onNavigateToMarketplace={() => handleNavigate('marketplace')}
+                  onNavigateToOwner={() => handleNavigate('publisher_dashboard')}
+                />
+              )}
+            </main>
+          </div>
         )}
-      </main>
+      </div>
 
       {/* Footer */}
       <Footer onNavigate={handleNavigate} />
@@ -191,8 +221,8 @@ export default function App() {
         onNavigateTo={(url) => {
           if (url.includes('orders') || url.includes('wallet')) {
             handleNavigate('buyer_dashboard');
-          } else if (url.includes('owner') || url.includes('earnings')) {
-            handleNavigate('owner_dashboard');
+          } else if (url.includes('owner') || url.includes('earnings') || url.includes('publisher')) {
+            handleNavigate('publisher_dashboard');
           } else if (url.includes('admin') || url.includes('finance') || url.includes('moderation') || url.includes('diamond')) {
             handleNavigate('admin_dashboard');
           } else if (url.includes('listing')) {
