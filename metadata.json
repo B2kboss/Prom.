@@ -1,0 +1,8 @@
+{
+  "name": "PROM.IO — Telegram & X Advertising Marketplace",
+  "description": "Premium advertising marketplace for Telegram channels, groups, and X accounts. Verified audience analytics, secure crypto escrow, automated statistics, and guaranteed promotion delivery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
